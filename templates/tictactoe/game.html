@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TicTacToe</title>
+        <!-- CSS only -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'css/game.css' %}">
+</head>
+<body>
+<div class="container" style="text-align:center">
+    <a href="{% url 'main' %}" type="button" class="btn btn-outline-secondary" style="margin:20px">Back</a>
+    <br>
+    Game <span class="text-primary">{{ room_name }}</span>
+</div>
+    <div class="container" id="notifications"></div>
+    <div class="container" id="isPlayer"></div>
+    <div class='grid'>
+      <div class='space' id='0' onclick="game('0')"></div>
+      <div class='space' id='1' onclick="game('1')"></div>
+      <div class='space' id='2' onclick="game('2')"></div>
+      <div class='space' id='3' onclick="game('3')"></div>
+      <div class='space' id='4' onclick="game('4')"></div>
+      <div class='space' id='5' onclick="game('5')"></div>
+      <div class='space' id='6' onclick="game('6')"></div>
+      <div class='space' id='7' onclick="game('7')"></div>
+      <div class='space' id='8' onclick="game('8')"></div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+<script>
+    let socket = new WebSocket("ws://localhost:8000/ws/game/" + '{{ room_name }}' + "/");
+    socket.onopen = function(e) {
+      console.log("[open] Connection established");
+      console.log("Sending to server");
+    };
+
+    socket.onmessage = function(event) {
+      console.log(`[message] Data received from server: ${event.data}`);
+      let data = JSON.parse(event.data);
+      let content = "";
+      if(data["chart"]){
+       for(let i = 0; i < 9; i++){
+          if(data["chart"][i] === "X"){
+              document.getElementById(i.toString()).innerHTML = "<div class=\"x\">X</div>";
+          }else if(data["chart"][i] === "O"){
+              document.getElementById(i.toString()).innerHTML = "<div class=\"o\">O</div>";
+          }
+      }
+      }
+      if(data["errors"]){
+          data["errors"].forEach(error => {
+            content += "<div class=\"alert alert-danger\" role=\"alert\">Error: " + error + "</div>";
+          })
+          document.getElementById("notifications").innerHTML = content;
+      }
+      if(data["winner"]){
+          content = "<div class=\"alert alert-success\" role=\"alert\">Winner: " + data["winner"] + "</div>";
+        document.getElementById("notifications").innerHTML = content;
+      }
+      if(data["player"]){
+          content = "<div class=\"alert alert-primary\" role=\"alert\">You player: " + data["player"] + "</div>";
+        document.getElementById("isPlayer").innerHTML = content;
+      }else{
+          content = "<div class=\"alert alert-primary\" role=\"alert\">Spectator</div>";
+        document.getElementById("isPlayer").innerHTML = content;
+      }
+    };
+
+    socket.onclose = function(event) {
+      if (event.wasClean) {
+        console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+      } else {
+        // e.g. server process killed or network down
+        // event.code is usually 1006 in this case
+        console.log('[close] Connection died');
+      }
+    };
+
+    socket.onerror = function(error) {
+      console.log(`[error] ${error.message}`);
+    };
+
+    function game(btn_id){
+        socket.send(JSON.stringify({"move": btn_id}));
+        console.log(btn_id)
+    }
+</script>
+</body>
+</html>
