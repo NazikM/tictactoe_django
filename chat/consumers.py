@@ -7,23 +7,23 @@ import json
 from django.core import serializers
 
 from chat.models import Game
-from chat.utils import TicTacToe
+from chat.utils import TicTacToe, generate_name
 
 
 class GameConsumer(WebsocketConsumer):
     def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.game_room, created = Game.objects.get_or_create(u_name=self.room_name)
-
-        if self.channel_name not in (self.game_room.player_1, self.game_room.player_2):
+        username = self.scope['session']['username']
+        if username not in (self.game_room.player_1, self.game_room.player_2):
             if self.game_room.status == "w":
                 if self.game_room.player_1 is None:
-                    self.game_room.player_1 = self.channel_name
-                    self.game_room.turn = self.channel_name
+                    self.game_room.player_1 = username
+                    self.game_room.turn = username
                     self.game_room.save()
                 elif self.game_room.status == "w":
                     self.game_room.status = "p"
-                    self.game_room.player_2 = self.channel_name
+                    self.game_room.player_2 = username
                     self.game_room.save()
 
                 self.lobby_message()
@@ -39,7 +39,7 @@ class GameConsumer(WebsocketConsumer):
                 })
         else:
             self.accept()
-            p = "X" if self.game_room.player_1 == self.channel_name else "O"
+            p = "X" if self.game_room.player_1 == username else "O"
             self.chat_message({
                 'text': {"chart": self.game_room.chart, "winner": None, "player": p},
                 'player_1': self.game_room.player_1,
@@ -51,10 +51,12 @@ class GameConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_discard)(self.room_name, self.channel_name)
 
     def receive(self, text_data=None, bytes_data=None):
+        # print(dict(self.scope['session']))
+        username = self.scope['session']['username']
         self.game_room.refresh_from_db()
         errors = []
 
-        if self.channel_name not in (self.game_room.player_2, self.game_room.player_1):
+        if username not in (self.game_room.player_2, self.game_room.player_1):
             errors.append("You cannot play here. You are spectator!")
             return self.send(text_data=json.dumps({
                 "errors": tuple(errors)
@@ -66,13 +68,13 @@ class GameConsumer(WebsocketConsumer):
                 "errors": tuple(errors)
             }))
 
-        if self.game_room.turn != self.channel_name:
+        if self.game_room.turn != username:
             errors.append("Not your turn!")
             return self.send(text_data=json.dumps({
                 "errors": tuple(errors)
             }))
 
-        if self.game_room.player_1 == self.channel_name:
+        if self.game_room.player_1 == username:
             self.game_room.turn = self.game_room.player_2
             p = "X"
         else:
@@ -92,9 +94,10 @@ class GameConsumer(WebsocketConsumer):
         })
 
     def chat_message(self, event):
-        if event['player_1'] == self.channel_name:
+        username = self.scope['session']['username']
+        if event['player_1'] == username:
             event["text"]["player"] = "X"
-        elif event['player_2'] == self.channel_name:
+        elif event['player_2'] == username:
             event["text"]["player"] = "O"
         self.send(text_data=json.dumps(event['text']))
 

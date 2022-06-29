@@ -34,6 +34,16 @@ class TicTacToe:
         for i in range(0, 9, 3):
             print(chart[i:i+3])
 
+
+def generate_name():
+    from random import choice, randint
+    adjective = choice(('clever', 'small', 'beautiful', 'happy', 'cool', 'sweet'))
+    noun = choice(('shark', 'panda', 'elephant', 'monkey', 'fish', 'axolotl'))
+    number = str(randint(1, 9))
+    return adjective + noun + number
+
+
+
 # TicTacToe.next_step('x..x.....', 6, "x")
 # TicTacToe.next_step('x...x....', 8, "x")
 # TicTacToe.next_step('..x.x....', 6, "x")
