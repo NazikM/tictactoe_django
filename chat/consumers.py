@@ -50,6 +50,8 @@ class GameConsumer(WebsocketConsumer):
     def disconnect(self, code):
         async_to_sync(self.channel_layer.group_discard)(self.room_name, self.channel_name)
 
+
+
     def receive(self, text_data=None, bytes_data=None):
         # print(dict(self.scope['session']))
         username = self.scope['session']['username']
@@ -86,7 +88,13 @@ class GameConsumer(WebsocketConsumer):
         else:
             self.game_room.turn = self.game_room.player_1
             p = "O"
-        self.game_room.chart, res = TicTacToe.next_step(self.game_room.chart, json.loads(text_data)['move'], p)
+        try:
+            self.game_room.chart, res = TicTacToe.next_step(self.game_room.chart, json.loads(text_data)['move'], p)
+        except ValueError as e:
+            errors.append(str(e))
+            return self.send(text_data=json.dumps({
+                "errors": tuple(errors)
+            }))
         if res:
             self.game_room.status = "f"
             self.lobby_message()

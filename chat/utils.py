@@ -8,7 +8,7 @@ class TicTacToe:
             chart[step] = player
             res = TicTacToe.check_winner(chart, player)
             return "".join(chart), res
-        return chart, False
+        raise ValueError("You can't make your move in this place")
 
 
     @staticmethod
