@@ -68,6 +68,12 @@ class GameConsumer(WebsocketConsumer):
                 "errors": tuple(errors)
             }))
 
+        if not self.game_room.player_2:
+            errors.append("Wait for other players")
+            return self.send(text_data=json.dumps({
+                "errors": tuple(errors)
+            }))
+
         if self.game_room.turn != username:
             errors.append("Not your turn!")
             return self.send(text_data=json.dumps({
