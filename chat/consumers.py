@@ -21,10 +21,12 @@ class GameConsumer(WebsocketConsumer):
                     self.game_room.player_1 = username
                     self.game_room.turn = username
                     self.game_room.save()
+                    self.p = "X"
                 elif self.game_room.status == "w":
                     self.game_room.status = "p"
                     self.game_room.player_2 = username
                     self.game_room.save()
+                    self.p = "O"
 
                 self.lobby_message()
 
@@ -39,9 +41,9 @@ class GameConsumer(WebsocketConsumer):
                 })
         else:
             self.accept()
-            p = "X" if self.game_room.player_1 == username else "O"
+            self.p = "X" if self.game_room.player_1 == username else "O"
             self.chat_message({
-                'text': {"chart": self.game_room.chart, "winner": None, "player": p},
+                'text': {"chart": self.game_room.chart, "winner": None, "player": self.p},
                 'player_1': self.game_room.player_1,
                 'player_2': self.game_room.player_2
             })
@@ -51,56 +53,26 @@ class GameConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_discard)(self.room_name, self.channel_name)
 
 
-
     def receive(self, text_data=None, bytes_data=None):
-        # print(dict(self.scope['session']))
-        username = self.scope['session']['username']
+        self.username = self.scope['session']['username']
         self.game_room.refresh_from_db()
-        errors = []
-
-        if username not in (self.game_room.player_2, self.game_room.player_1):
-            errors.append("You cannot play here. You are spectator!")
-            return self.send(text_data=json.dumps({
-                "errors": tuple(errors)
-            }))
-
-        if self.game_room.status == "f":
-            errors.append("Game already finished!")
-            return self.send(text_data=json.dumps({
-                "errors": tuple(errors)
-            }))
-
-        if not self.game_room.player_2:
-            errors.append("Wait for other players")
-            return self.send(text_data=json.dumps({
-                "errors": tuple(errors)
-            }))
-
-        if self.game_room.turn != username:
-            errors.append("Not your turn!")
-            return self.send(text_data=json.dumps({
-                "errors": tuple(errors)
-            }))
-
-        if self.game_room.player_1 == username:
-            self.game_room.turn = self.game_room.player_2
-            p = "X"
-        else:
-            self.game_room.turn = self.game_room.player_1
-            p = "O"
         try:
-            self.game_room.chart, res = TicTacToe.next_step(self.game_room.chart, json.loads(text_data)['move'], p)
+            self.fetch_errors()
+            self.game_room.chart, res = TicTacToe.next_step(self.game_room.chart, json.loads(text_data)['move'], self.p)
         except ValueError as e:
-            errors.append(str(e))
             return self.send(text_data=json.dumps({
-                "errors": tuple(errors)
+                "error": str(e),
+                "player": self.p
             }))
+
+        self.game_room.turn = self.game_room.player_2 if self.game_room.player_1 == self.username else self.game_room.player_1
+
         if res or '.' not in self.game_room.chart:
             self.game_room.status = "f"
             self.lobby_message()
         self.game_room.save()
 
-        winner = ('winner: ' + p) if res else None
+        winner = ('winner: ' + self.p) if res else None
         if not winner and '.' not in self.game_room.chart:
             winner = "Tie"
         async_to_sync(self.channel_layer.group_send)(self.room_name, {
@@ -124,6 +96,19 @@ class GameConsumer(WebsocketConsumer):
             'type': 'lobby_smessage',
             'text': data
         })
+
+    def fetch_errors(self):
+        if self.username not in (self.game_room.player_2, self.game_room.player_1):
+            raise ValueError("You cannot play here. You are spectator!")
+
+        if self.game_room.status == "f":
+            raise ValueError("Game already finished!")
+
+        if not self.game_room.player_2:
+            raise ValueError("Wait for other players")
+
+        if self.game_room.turn != self.username:
+            raise ValueError("Not your turn!")
 
 
 class LobbyConsumer(WebsocketConsumer):

@@ -50,11 +50,8 @@
           }
       }
       }
-      if(data["errors"]){
-          data["errors"].forEach(error => {
-            content += "<div class=\"alert alert-danger\" role=\"alert\">Error: " + error + "</div>";
-          })
-          document.getElementById("notifications").innerHTML = content;
+      if(data["error"]){
+          document.getElementById("notifications").innerHTML = "<div class=\"alert alert-danger\" role=\"alert\">Error: " + data["error"] + "</div>";
       }
       if(data["winner"]){
             content = "<div class=\"alert alert-success\" role=\"alert\">Result: " + data["winner"] + "</div>";
