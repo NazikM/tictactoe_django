@@ -95,14 +95,17 @@ class GameConsumer(WebsocketConsumer):
             return self.send(text_data=json.dumps({
                 "errors": tuple(errors)
             }))
-        if res:
+        if res or '.' not in self.game_room.chart:
             self.game_room.status = "f"
             self.lobby_message()
         self.game_room.save()
 
+        winner = ('winner: ' + p) if res else None
+        if not winner and '.' not in self.game_room.chart:
+            winner = "Tie"
         async_to_sync(self.channel_layer.group_send)(self.room_name, {
             'type': 'chat.message',
-            'text': {"chart": self.game_room.chart, "winner": p if res else None, "player": None},
+            'text': {"chart": self.game_room.chart, "winner": winner, "player": None},
             'player_1': self.game_room.player_1,
             'player_2': self.game_room.player_2
         })
