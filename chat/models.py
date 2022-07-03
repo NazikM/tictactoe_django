@@ -4,7 +4,7 @@ from django.db import models
 class Game(models.Model):
     """
         u_name - unique name of room
-        status - 3 possible statuses (w - waiting, p - playing, f - finished)
+        status - 3 possible statuses (w - waiting, p - playing)
     """
     u_name = models.CharField(max_length=200, unique=True)
     status = models.CharField(max_length=20, default="w")

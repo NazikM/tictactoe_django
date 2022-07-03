@@ -1,13 +1,10 @@
 from asgiref.sync import async_to_sync
-from channels.db import database_sync_to_async
 from channels.generic.websocket import WebsocketConsumer
-from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.consumer import SyncConsumer
 import json
 from django.core import serializers
 
 from chat.models import Game
-from chat.utils import TicTacToe, generate_name
+from chat.utils import TicTacToe
 
 
 class GameConsumer(WebsocketConsumer):
@@ -48,10 +45,19 @@ class GameConsumer(WebsocketConsumer):
                 'player_2': self.game_room.player_2
             })
 
-
     def disconnect(self, code):
+        self.game_room.refresh_from_db()
+        if self.game_room.status == "w":
+            self.lobby_message()
+        else:
+            winner = self.game_room.player_2 if self.game_room.player_1 == self.p else self.game_room.player_1
+            self.chat_message({
+                'text': {"chart": self.game_room.chart, "winner": winner, "player": self.p},
+                'player_1': self.game_room.player_1,
+                'player_2': self.game_room.player_2
+            })
+        self.game_room.delete()
         async_to_sync(self.channel_layer.group_discard)(self.room_name, self.channel_name)
-
 
     def receive(self, text_data=None, bytes_data=None):
         self.username = self.scope['session']['username']
@@ -67,27 +73,25 @@ class GameConsumer(WebsocketConsumer):
 
         self.game_room.turn = self.game_room.player_2 if self.game_room.player_1 == self.username else self.game_room.player_1
 
-        if res or '.' not in self.game_room.chart:
+        if res:
+            winner = 'winner: ' + self.p
             self.game_room.status = "f"
             self.lobby_message()
-        self.game_room.save()
-
-        winner = ('winner: ' + self.p) if res else None
-        if not winner and '.' not in self.game_room.chart:
+        elif '.' not in self.game_room.chart:
             winner = "Tie"
+            self.game_room.status = "f"
+            self.lobby_message()
+        else:
+            winner = None
+        self.game_room.save()
         async_to_sync(self.channel_layer.group_send)(self.room_name, {
             'type': 'chat.message',
-            'text': {"chart": self.game_room.chart, "winner": winner, "player": None},
-            'player_1': self.game_room.player_1,
-            'player_2': self.game_room.player_2
+            'text': {"chart": self.game_room.chart, "winner": winner, "player": None}
         })
 
     def chat_message(self, event):
-        username = self.scope['session']['username']
-        if event['player_1'] == username:
-            event["text"]["player"] = "X"
-        elif event['player_2'] == username:
-            event["text"]["player"] = "O"
+        if self.username in (self.game_room.player_1, self.game_room.player_2):
+            event["text"]["player"] = self.p
         self.send(text_data=json.dumps(event['text']))
 
     def lobby_message(self):
