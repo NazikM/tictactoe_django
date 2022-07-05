@@ -12,7 +12,7 @@
   <p>Welcome, You are logged in as {{ user.username }}</p>
 {% else %}
     <h4 style="text-align: right; margin: 20px">Username: {{ username }}</h4>
-  <a href="{% provider_login_url 'google' %}">Login With Google</a>
+  <a href="{% provider_login_url 'github' %}">Login With Google</a>
 {% endif %}
 <div class="container">
     <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0" style="margin-top: 70px">

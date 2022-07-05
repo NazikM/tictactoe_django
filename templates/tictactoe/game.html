@@ -9,7 +9,12 @@
     <link rel="stylesheet" href="{% static 'css/game.css' %}">
 </head>
 <body>
-<h4 style="text-align: right; margin: 20px">Username: {{ username }}</h4>
+{% if user.is_authenticated %}
+  <p>Welcome, You are logged in as {{ user.username }}</p>
+{% else %}
+    <h4 style="text-align: right; margin: 20px">Username: {{ username }}</h4>
+  <a href="{% provider_login_url 'github' %}">Login With Google</a>
+{% endif %}
 <div class="container" style="text-align:center">
     <a href="{% url 'main' %}" type="button" class="btn btn-outline-secondary" style="margin:20px">Back</a>
     <br>

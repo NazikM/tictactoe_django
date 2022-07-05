@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.github',
 ]
 
 MIDDLEWARE = [
@@ -150,14 +150,12 @@ AUTHENTICATION_BACKENDS = [
 
 
 SOCIALACCOUNT_PROVIDERS = {
-    'google': {
+    'github': {
         'SCOPE': [
-            'profile',
-            'email',
+            'user',
+            'repo',
+            'read:org',
         ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-        }
     }
 }
 
