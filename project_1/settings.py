@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-sjj(3nr3+kpug)a8ajelxr=290s-qml&%pkb&y(ppy)ru7=f$n
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["ec2-16-171-31-110.eu-north-1.compute.amazonaws.com", "16.171.31.110"]
+ALLOWED_HOSTS = ["ec2-16-171-31-110.eu-north-1.compute.amazonaws.com", "16.171.31.110", "127.0.0.1"]
 
 
 # Application definition
@@ -38,12 +38,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',
-    'chat',
     'django.contrib.sites',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.github',
+    'chat',
 ]
 
 MIDDLEWARE = [
